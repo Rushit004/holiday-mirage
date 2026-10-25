@@ -39,7 +39,14 @@ function App() {
   const [success, setSuccess] = useState('');
 
   // Backend API Base URL
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  // Automatically connects to your Render backend in production (e.g. on Vercel),
+  // while still using localhost:5000 during local development.
+  const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    (typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:5000'
+      : 'https://holiday-mirage-backend.onrender.com');
   const DESTINATIONS_URL = `${API_BASE_URL}/api/destinations`;
   const AUTH_URL = `${API_BASE_URL}/api/auth`;
 
