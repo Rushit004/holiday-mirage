@@ -19,8 +19,9 @@ function App() {
   // Simple error message state
   const [error, setError] = useState('');
 
-  // Backend API URL
-  const API_URL = 'http://localhost:5000/api/destinations';
+  // Backend API URL (uses Render URL in production, defaults to localhost:5000 in development)
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = `${API_BASE_URL}/api/destinations`;
 
   // ----------------------------------------------------
   // 1. FETCH ALL DESTINATIONS (GET)

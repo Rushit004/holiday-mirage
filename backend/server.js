@@ -50,6 +50,11 @@ async function startServer() {
 // REST API ENDPOINTS
 // ------------------------------------------
 
+// Health Check Route (great for testing Render deployment)
+app.get('/', (req, res) => {
+  res.send('Holiday Mirage API Server is running successfully.');
+});
+
 // 1. GET /api/destinations — Retrieve all destinations
 app.get('/api/destinations', async (req, res) => {
   try {
