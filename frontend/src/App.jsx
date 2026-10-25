@@ -366,14 +366,11 @@ function App() {
         <header className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">🏝️</span>
-                <h1 className="text-3xl font-extrabold text-teal-700 tracking-tight">
-                  Holiday Mirage
-                </h1>
-              </div>
+              <h1 className="text-3xl font-extrabold text-teal-700 tracking-tight">
+                Holiday Mirage
+              </h1>
               <p className="text-sm md:text-base text-slate-600 mt-1">
-                Plan Your Perfect Escape — Role-Based Holiday Destination Manager
+                Plan Your Perfect Escape — Holiday Destination Directory
               </p>
             </div>
 
@@ -391,12 +388,12 @@ function App() {
 
                   {/* Role Indicator Badge */}
                   {isAdmin ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 border border-purple-300 text-xs font-bold rounded-full shadow-sm">
-                      👑 Admin
+                    <span className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 border border-purple-300 text-xs font-bold rounded-full shadow-sm">
+                      Admin
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-teal-100 text-teal-800 border border-teal-300 text-xs font-bold rounded-full shadow-sm">
-                      👤 User
+                    <span className="inline-flex items-center px-3 py-1 bg-teal-100 text-teal-800 border border-teal-300 text-xs font-bold rounded-full shadow-sm">
+                      User
                     </span>
                   )}
 
@@ -425,7 +422,6 @@ function App() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-300 text-red-700 rounded-xl flex justify-between items-center shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="text-lg">⚠️</span>
               <span><strong>Error:</strong> {error}</span>
             </div>
             <button
@@ -440,7 +436,6 @@ function App() {
         {success && (
           <div className="mb-6 p-4 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl flex justify-between items-center shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="text-lg">✅</span>
               <span>{success}</span>
             </div>
             <button
@@ -535,21 +530,12 @@ function App() {
                 >
                   {isAuthSubmitting ? 'Signing In...' : 'Sign In'}
                 </button>
-
-                {/* Testing Hint Pill */}
-                <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
-                  <p className="font-semibold text-slate-700 mb-1">🔑 Quick College Viva / Evaluation Credentials:</p>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    <li><strong>Admin:</strong> <code className="bg-slate-200 px-1 py-0.5 rounded">admin@holidaymirage.com</code> / <code className="bg-slate-200 px-1 py-0.5 rounded">Admin@123</code></li>
-                    <li><strong>New Users:</strong> Click the "Create New Account" tab above.</li>
-                  </ul>
-                </div>
               </form>
             ) : (
               /* REGISTRATION FORM */
               <form onSubmit={handleRegister} className="space-y-4 max-w-md mx-auto">
                 <p className="text-xs text-slate-500 text-center mb-2">
-                  Register a standard traveler account. (Admin accounts can only be created via the protected backend setup script).
+                  Register a standard traveler account.
                 </p>
 
                 <div>
@@ -615,16 +601,13 @@ function App() {
         {/* ==================================================== */}
         {isAdmin && (
           <div className="mb-8 p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">👑</span>
-              <div>
-                <h2 className="text-base font-bold text-purple-900">
-                  Administrator Interface Active
-                </h2>
-                <p className="text-xs text-purple-700">
-                  You have full administrative privileges: add destinations, toggle booking availability, and delete records.
-                </p>
-              </div>
+            <div>
+              <h2 className="text-base font-bold text-purple-900">
+                Administrator Panel Active
+              </h2>
+              <p className="text-xs text-purple-700 mt-0.5">
+                Full administrative privileges: add destinations, toggle booking availability, and delete records.
+              </p>
             </div>
             <span className="hidden sm:inline-block px-3 py-1 bg-purple-200 text-purple-900 text-xs font-bold rounded-lg uppercase tracking-wider">
               Full Access
@@ -634,16 +617,13 @@ function App() {
 
         {isUser && (
           <div className="mb-8 p-4 bg-teal-50 border border-teal-200 rounded-2xl flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">👤</span>
-              <div>
-                <h2 className="text-base font-bold text-teal-900">
-                  Traveler Interface Active (User Role)
-                </h2>
-                <p className="text-xs text-teal-700">
-                  Welcome, {currentUser.name}! You can view destinations and check availability. Administrative operations are restricted.
-                </p>
-              </div>
+            <div>
+              <h2 className="text-base font-bold text-teal-900">
+                Traveler Dashboard
+              </h2>
+              <p className="text-xs text-teal-700 mt-0.5">
+                Welcome, {currentUser.name}. Explore holiday destinations and check booking availability.
+              </p>
             </div>
             <span className="hidden sm:inline-block px-3 py-1 bg-teal-200 text-teal-900 text-xs font-bold rounded-lg uppercase tracking-wider">
               View Only
@@ -656,8 +636,7 @@ function App() {
         {/* ==================================================== */}
         {isAdmin && (
           <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10">
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-              <span className="text-teal-600 font-bold text-lg">➕</span>
+            <div className="pb-3 mb-4 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 Add a Holiday Destination
               </h2>
@@ -813,7 +792,6 @@ function App() {
           {/* Cards Grid */}
           {displayedDestinations.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 p-6">
-              <span className="text-4xl">🏝️</span>
               <p className="text-slate-600 text-base font-semibold mt-2">No destinations to display.</p>
               <p className="text-slate-400 text-xs mt-1">
                 {filterMode === 'available'
