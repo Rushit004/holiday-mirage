@@ -1126,7 +1126,6 @@ function App() {
                             className="w-full bg-slate-800 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5"
                           >
                             <span>Book Destination</span>
-                            <span className="text-[10px] text-teal-200 font-normal">(Login Required)</span>
                           </button>
                         ) : (
                           <button
