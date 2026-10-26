@@ -20,7 +20,10 @@
 | :--- | :---: | :---: | :---: |
 | Register as User | ❌ (Setup script only) | ✅ | ✅ |
 | Log In / Log Out | ✅ | ✅ | ❌ |
-| View Holiday Destinations | ✅ | ✅ | ✅ |
+| View Holiday Destinations | ✅ | ✅ | ✅ (Browsing Only) |
+| Book a Destination | ❌ (Admin role) | ✅ (Instant Confirmation) | ❌ (Prompted to Sign In) |
+| View My Bookings (User Panel) | ❌ | ✅ (Small Cards Grid) | ❌ |
+| Cancel Booking | ❌ | ✅ | ❌ |
 | Add New Destinations | ✅ | ❌ (403 Forbidden) | ❌ (401 Unauthorized) |
 | Toggle Availability | ✅ | ❌ (403 Forbidden) | ❌ (401 Unauthorized) |
 | Delete Destinations | ✅ | ❌ (403 Forbidden) | ❌ (401 Unauthorized) |
@@ -129,6 +132,13 @@ npm run dev
 | `POST` | `/api/destinations` | 👑 Admin Only | `{ name, location, days, budget, isAvailable }` | Add new destination |
 | `PATCH`| `/api/destinations/:id`| 👑 Admin Only | `{ isAvailable: boolean }` | Toggle booking availability |
 | `DELETE`| `/api/destinations/:id`| 👑 Admin Only | None | Delete destination from database |
+
+### Bookings Endpoints (User Panel)
+| Method | Endpoint | Access | Request Body | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/bookings` | 👤 User (Authenticated) | `{ destinationId }` | Book a destination |
+| `GET` | `/api/bookings/my` | 👤 User (Authenticated) | None | Retrieve current user's booked destinations |
+| `DELETE`| `/api/bookings/:id` | 👤 User (Authenticated) | None | Cancel a booking |
 
 ---
 

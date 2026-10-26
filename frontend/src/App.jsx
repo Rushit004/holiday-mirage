@@ -25,6 +25,12 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // User Bookings State (Small Cards in User Panel)
+  const [myBookings, setMyBookings] = useState([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
+  const [bookingInProgressId, setBookingInProgressId] = useState(null);
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+
   // Auth Form State (Login / Register)
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
   const [authForm, setAuthForm] = useState({
@@ -39,16 +45,16 @@ function App() {
   const [success, setSuccess] = useState('');
 
   // Backend API Base URL
-  // Automatically connects to your Render backend in production (e.g. on Vercel),
-  // while still using localhost:5000 during local development.
   const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
     (typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
       ? 'http://localhost:5000'
       : 'https://holiday-mirage-backend.onrender.com');
+
   const DESTINATIONS_URL = `${API_BASE_URL}/api/destinations`;
   const AUTH_URL = `${API_BASE_URL}/api/auth`;
+  const BOOKINGS_URL = `${API_BASE_URL}/api/bookings`;
 
   // ----------------------------------------------------
   // 1. INITIALIZE & PERSIST USER SESSION (GET /api/auth/me)
@@ -77,7 +83,6 @@ function App() {
           setCurrentUser(null);
         }
       } catch (err) {
-        // Network or server error
         console.warn('Could not verify existing authentication token:', err.message);
       } finally {
         setIsCheckingAuth(false);
@@ -116,7 +121,39 @@ function App() {
   }, []);
 
   // ----------------------------------------------------
-  // 3. AUTHENTICATION HANDLERS
+  // 3. FETCH USER'S BOOKINGS (GET /api/bookings/my)
+  // ----------------------------------------------------
+  useEffect(() => {
+    async function fetchUserBookings() {
+      if (!token || !currentUser || currentUser.role !== 'user') {
+        setMyBookings([]);
+        return;
+      }
+
+      try {
+        setIsLoadingBookings(true);
+        const response = await fetch(`${BOOKINGS_URL}/my`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setMyBookings(data);
+        }
+      } catch (err) {
+        console.warn('Could not load user bookings:', err.message);
+      } finally {
+        setIsLoadingBookings(false);
+      }
+    }
+
+    fetchUserBookings();
+  }, [token, currentUser]);
+
+  // ----------------------------------------------------
+  // 4. AUTHENTICATION HANDLERS
   // ----------------------------------------------------
   function handleAuthFormChange(e) {
     setAuthForm({
@@ -165,7 +202,7 @@ function App() {
     }
   }
 
-  // Handle User Registration (Always registers as standard user)
+  // Handle User Registration
   async function handleRegister(e) {
     e.preventDefault();
     setError('');
@@ -195,7 +232,7 @@ function App() {
       localStorage.setItem('holiday_token', data.token);
       setToken(data.token);
       setCurrentUser(data.user);
-      setSuccess(`Account registered successfully! Welcome to Holiday Mirage, ${data.user.name}.`);
+      setSuccess(`Account registered successfully! Welcome to Holiday Mirage, ${data.user.name}. You can now book holiday destinations.`);
 
       // Clear form
       setAuthForm({ name: '', email: '', password: '' });
@@ -209,18 +246,106 @@ function App() {
   // Handle Logout
   async function handleLogout() {
     try {
-      // Optional notification to backend
       await fetch(`${AUTH_URL}/logout`, { method: 'POST' }).catch(() => {});
     } finally {
       localStorage.removeItem('holiday_token');
       setToken('');
       setCurrentUser(null);
+      setMyBookings([]);
       setSuccess('You have been logged out safely.');
     }
   }
 
   // ----------------------------------------------------
-  // 4. DESTINATION FORM CHANGE HANDLER
+  // 5. BOOKING HANDLERS (LOGGED-IN USER)
+  // ----------------------------------------------------
+  async function bookDestination(dest) {
+    // If not logged in, prompt user and scroll to the login form
+    if (!currentUser) {
+      setError(`Please sign in or create an account to book your trip to "${dest.name}".`);
+      const authElem = document.getElementById('auth-section');
+      if (authElem) {
+        authElem.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setBookingInProgressId(dest._id);
+
+      const response = await fetch(BOOKINGS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ destinationId: dest._id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to book destination.');
+      }
+
+      // Add new booking to local user panel state
+      setMyBookings((prev) => [data.booking, ...prev]);
+      setSuccess(`🎉 Trip to "${dest.name}" successfully booked! View your booking card in your User Panel above.`);
+
+      // Smoothly scroll up to the user panel
+      const userPanelElem = document.getElementById('user-panel-section');
+      if (userPanelElem) {
+        userPanelElem.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBookingInProgressId(null);
+    }
+  }
+
+  // Cancel a booking
+  async function cancelBooking(bookingId, destinationName) {
+    if (!window.confirm(`Are you sure you want to cancel your booking for "${destinationName}"?`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setCancellingBookingId(bookingId);
+
+      const response = await fetch(`${BOOKINGS_URL}/${bookingId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel booking.');
+      }
+
+      setMyBookings((prev) => prev.filter((b) => b._id !== bookingId));
+      setSuccess(`Booking for "${destinationName}" has been cancelled.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCancellingBookingId(null);
+    }
+  }
+
+  // Helper: Check if destination is already booked by user
+  function isAlreadyBooked(destId) {
+    return myBookings.some((b) => b.destinationId === destId);
+  }
+
+  // ----------------------------------------------------
+  // 6. DESTINATION FORM CHANGE HANDLER (ADMIN)
   // ----------------------------------------------------
   function handleChange(e) {
     const name = e.target.name;
@@ -233,7 +358,7 @@ function App() {
   }
 
   // ----------------------------------------------------
-  // 5. ADD A NEW DESTINATION (POST — ADMIN ONLY)
+  // 7. ADD A NEW DESTINATION (POST — ADMIN ONLY)
   // ----------------------------------------------------
   async function addDestination(e) {
     e.preventDefault();
@@ -275,7 +400,7 @@ function App() {
   }
 
   // ----------------------------------------------------
-  // 6. TOGGLE AVAILABILITY (PATCH — ADMIN ONLY)
+  // 8. TOGGLE AVAILABILITY (PATCH — ADMIN ONLY)
   // ----------------------------------------------------
   async function toggleAvailability(id, currentStatus) {
     try {
@@ -315,7 +440,7 @@ function App() {
   }
 
   // ----------------------------------------------------
-  // 7. DELETE A DESTINATION (DELETE — ADMIN ONLY)
+  // 9. DELETE A DESTINATION (DELETE — ADMIN ONLY)
   // ----------------------------------------------------
   async function deleteDestination(id) {
     if (!window.confirm('Are you sure you want to delete this holiday destination?')) {
@@ -377,7 +502,7 @@ function App() {
                 Holiday Mirage
               </h1>
               <p className="text-sm md:text-base text-slate-600 mt-1">
-                Plan Your Perfect Escape — Holiday Destination Directory
+                Plan Your Perfect Escape — Holiday Destination Directory & Booking
               </p>
             </div>
 
@@ -415,8 +540,14 @@ function App() {
               ) : (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                    Guest Mode (Read-Only)
+                    Guest Mode (Browsing Only)
                   </span>
+                  <a
+                    href="#auth-section"
+                    className="text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold py-1.5 px-3 rounded-full transition-colors"
+                  >
+                    Sign In to Book
+                  </a>
                 </div>
               )}
             </div>
@@ -429,7 +560,7 @@ function App() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-300 text-red-700 rounded-xl flex justify-between items-center shadow-sm">
             <div className="flex items-center gap-2">
-              <span><strong>Error:</strong> {error}</span>
+              <span><strong>Notice:</strong> {error}</span>
             </div>
             <button
               onClick={() => setError('')}
@@ -455,10 +586,103 @@ function App() {
         )}
 
         {/* ==================================================== */}
+        {/* USER PANEL: MY BOOKINGS (LOGGED-IN USER ONLY) */}
+        {/* ==================================================== */}
+        {isUser && (
+          <section id="user-panel-section" className="mb-10 bg-white p-6 rounded-2xl shadow-sm border border-teal-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    User Panel — My Booked Destinations
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Welcome, <strong className="text-slate-700">{currentUser.name}</strong>. Here are all your confirmed travel bookings.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-teal-50 text-teal-800 border border-teal-200 font-semibold px-3 py-1 rounded-full">
+                  {myBookings.length} {myBookings.length === 1 ? 'Trip Booked' : 'Trips Booked'}
+                </span>
+              </div>
+            </div>
+
+            {/* Small Cards Grid for Bookings */}
+            {isLoadingBookings ? (
+              <div className="text-center py-6 text-xs text-slate-400 animate-pulse">
+                Loading your bookings...
+              </div>
+            ) : myBookings.length === 0 ? (
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center">
+                <p className="text-sm font-semibold text-slate-700">
+                  No booked destinations yet!
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Browse the destinations catalog below and click <strong className="text-teal-700">"Book Destination"</strong> to reserve your getaway.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {myBookings.map((booking) => (
+                  <div
+                    key={booking._id}
+                    className="bg-teal-50/30 border border-teal-200 hover:border-teal-400 rounded-xl p-3.5 shadow-sm transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Destination Name & Confirmed Badge */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-bold text-slate-800 text-sm tracking-tight truncate" title={booking.destinationName}>
+                          ✈️ {booking.destinationName}
+                        </h3>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Confirmed
+                        </span>
+                      </div>
+
+                      {/* Small Compact Details */}
+                      <div className="space-y-1 text-xs text-slate-600 mb-3">
+                        <p className="truncate">
+                          <span className="font-semibold text-slate-700">📍 Location:</span> {booking.location}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-slate-700">⏳ Duration:</span> {booking.days} Days
+                        </p>
+                        <p>
+                          <span className="font-semibold text-slate-700">💰 Budget:</span> ₹{Number(booking.budget).toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          📅 Booked on {booking.bookedAt ? new Date(booking.bookedAt).toLocaleDateString() : 'Confirmed'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Small Card Action Footer */}
+                    <div className="pt-2 border-t border-teal-100 flex items-center justify-between">
+                      <span className="text-[11px] text-teal-700 font-medium">Ready to travel</span>
+                      <button
+                        onClick={() => cancelBooking(booking._id, booking.destinationName)}
+                        disabled={cancellingBookingId === booking._id}
+                        className="text-[11px] text-rose-600 hover:text-rose-800 hover:underline font-semibold disabled:opacity-50"
+                      >
+                        {cancellingBookingId === booking._id ? 'Cancelling...' : 'Cancel Booking'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ==================================================== */}
         {/* AUTHENTICATION PORTAL (FOR GUESTS / LOGGED-OUT USERS) */}
         {/* ==================================================== */}
         {!currentUser && (
-          <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10">
+          <section id="auth-section" className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-10">
             {/* Tab Buttons to switch between Sign In & Register */}
             <div className="flex border-b border-slate-200 mb-6">
               <button
@@ -497,7 +721,7 @@ function App() {
             {authMode === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4 max-w-md mx-auto">
                 <p className="text-xs text-slate-500 text-center mb-2">
-                  Sign in as an <strong>Administrator</strong> to manage destinations, or as a <strong>User</strong> to view getaways.
+                  Sign in as a <strong>User</strong> to book destinations, or as an <strong>Administrator</strong> to manage destinations.
                 </p>
 
                 <div>
@@ -542,7 +766,7 @@ function App() {
               /* REGISTRATION FORM */
               <form onSubmit={handleRegister} className="space-y-4 max-w-md mx-auto">
                 <p className="text-xs text-slate-500 text-center mb-2">
-                  Register a standard traveler account.
+                  Register a traveler account to book holiday destinations.
                 </p>
 
                 <div>
@@ -604,7 +828,7 @@ function App() {
         )}
 
         {/* ==================================================== */}
-        {/* ROLE-SPECIFIC STATUS BANNERS */}
+        {/* ROLE-SPECIFIC STATUS BANNERS (ADMIN) */}
         {/* ==================================================== */}
         {isAdmin && (
           <div className="mb-8 p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between shadow-sm">
@@ -617,23 +841,7 @@ function App() {
               </p>
             </div>
             <span className="hidden sm:inline-block px-3 py-1 bg-purple-200 text-purple-900 text-xs font-bold rounded-lg uppercase tracking-wider">
-              Full Access
-            </span>
-          </div>
-        )}
-
-        {isUser && (
-          <div className="mb-8 p-4 bg-teal-50 border border-teal-200 rounded-2xl flex items-center justify-between shadow-sm">
-            <div>
-              <h2 className="text-base font-bold text-teal-900">
-                Traveler Dashboard
-              </h2>
-              <p className="text-xs text-teal-700 mt-0.5">
-                Welcome, {currentUser.name}. Explore holiday destinations and check booking availability.
-              </p>
-            </div>
-            <span className="hidden sm:inline-block px-3 py-1 bg-teal-200 text-teal-900 text-xs font-bold rounded-lg uppercase tracking-wider">
-              View Only
+              Admin Access
             </span>
           </div>
         )}
@@ -745,7 +953,7 @@ function App() {
         )}
 
         {/* ==================================================== */}
-        {/* DESTINATIONS LIST & CONTROLS */}
+        {/* DESTINATIONS LIST & BOOKING CONTROLS */}
         {/* ==================================================== */}
         <section>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -756,12 +964,14 @@ function App() {
               <p className="text-xs text-slate-500">
                 {isAdmin
                   ? 'Manage packages, update availability, or delete entries below.'
-                  : 'Browse holiday destinations curated by our travel administrators.'}
+                  : currentUser
+                  ? 'Browse getaways and click "Book Destination" to confirm your trip.'
+                  : 'Browse holiday destinations freely. Sign in to book any destination!'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Filter toggle for users */}
+              {/* Filter toggle */}
               <div className="bg-slate-200 p-1 rounded-lg flex text-xs font-semibold">
                 <button
                   onClick={() => setFilterMode('all')}
@@ -815,6 +1025,7 @@ function App() {
                 const displayBudget = dest.budget !== undefined ? dest.budget : (dest.pricePerNight || 0);
                 const displayDays = dest.days || 3;
                 const isAvail = dest.isAvailable !== undefined ? dest.isAvailable : true;
+                const alreadyBooked = isAlreadyBooked(dest._id);
 
                 return (
                   <div
@@ -852,7 +1063,8 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Action Buttons (ADMIN ONLY) */}
+                    {/* ACTION CONTROLS */}
+                    {/* 1. ADMIN CONTROLS */}
                     {isAdmin ? (
                       <div className="flex gap-2 pt-3 border-t border-slate-100">
                         <button
@@ -863,7 +1075,7 @@ function App() {
                               : 'bg-teal-100 text-teal-800 hover:bg-teal-200 border border-teal-200'
                           }`}
                         >
-                          {isAvail ? 'Mark Not Available' : 'Mark Available'}
+                          {isAvail ? 'Mark Unavailable' : 'Mark Available'}
                         </button>
 
                         <button
@@ -873,11 +1085,57 @@ function App() {
                           Delete
                         </button>
                       </div>
+                    ) : isUser ? (
+                      /* 2. LOGGED-IN USER CONTROLS */
+                      <div className="pt-3 border-t border-slate-100">
+                        {alreadyBooked ? (
+                          <div className="w-full bg-emerald-50 text-emerald-700 border border-emerald-300 font-semibold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 text-center">
+                            <span>✓</span>
+                            <span>Booked (In Your Panel)</span>
+                          </div>
+                        ) : isAvail ? (
+                          <button
+                            onClick={() => bookDestination(dest)}
+                            disabled={bookingInProgressId === dest._id}
+                            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {bookingInProgressId === dest._id ? (
+                              <span>Confirming Booking...</span>
+                            ) : (
+                              <>
+                                <span>Book Destination</span>
+                                <span>→</span>
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            className="w-full bg-slate-100 text-slate-400 font-semibold py-2 px-3 rounded-lg text-xs cursor-not-allowed text-center"
+                          >
+                            Currently Unavailable
+                          </button>
+                        )}
+                      </div>
                     ) : (
-                      /* Non-admin / User / Guest footer status */
-                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                        <span>{isAvail ? 'Ready for booking' : 'Currently unavailable'}</span>
-                        <span className="font-medium text-teal-600">Holiday Mirage</span>
+                      /* 3. GUEST (UNAUTHENTICATED) CONTROLS */
+                      <div className="pt-3 border-t border-slate-100">
+                        {isAvail ? (
+                          <button
+                            onClick={() => bookDestination(dest)}
+                            className="w-full bg-slate-800 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5"
+                          >
+                            <span>Book Destination</span>
+                            <span className="text-[10px] text-teal-200 font-normal">(Login Required)</span>
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            className="w-full bg-slate-100 text-slate-400 font-semibold py-2 px-3 rounded-lg text-xs cursor-not-allowed text-center"
+                          >
+                            Currently Unavailable
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

@@ -383,5 +383,109 @@ app.delete('/api/destinations/:id', authenticateToken, requireAdmin, async (req,
   }
 });
 
+// ==========================================
+// BOOKINGS ENDPOINTS
+// ==========================================
+
+// 1. POST /api/bookings — Book a destination (Requires Login)
+app.post('/api/bookings', authenticateToken, async (req, res) => {
+  try {
+    const { destinationId } = req.body;
+
+    if (!destinationId || !ObjectId.isValid(destinationId)) {
+      return res.status(400).json({ error: 'A valid destination ID is required to book.' });
+    }
+
+    // Check if destination exists
+    const destination = await db.collection('destinations').findOne({
+      _id: new ObjectId(destinationId),
+    });
+
+    if (!destination) {
+      return res.status(404).json({ error: 'Destination not found.' });
+    }
+
+    // Check availability
+    if (destination.isAvailable === false) {
+      return res.status(400).json({ error: 'This destination is currently not available for booking.' });
+    }
+
+    // Check if user has already booked this destination
+    const existingBooking = await db.collection('bookings').findOne({
+      userId: req.user.userId,
+      destinationId: destinationId,
+    });
+
+    if (existingBooking) {
+      return res.status(400).json({ error: 'You have already booked this destination!' });
+    }
+
+    // Create booking record
+    const newBooking = {
+      userId: req.user.userId,
+      userEmail: req.user.email,
+      userName: req.user.name,
+      destinationId: destination._id.toString(),
+      destinationName: destination.name,
+      location: destination.location,
+      days: destination.days,
+      budget: destination.budget,
+      status: 'Confirmed',
+      bookedAt: new Date(),
+    };
+
+    const result = await db.collection('bookings').insertOne(newBooking);
+
+    res.status(201).json({
+      message: 'Destination booked successfully!',
+      booking: {
+        _id: result.insertedId,
+        ...newBooking,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to book destination. Please try again.' });
+  }
+});
+
+// 2. GET /api/bookings/my — Get bookings for the currently logged-in user
+app.get('/api/bookings/my', authenticateToken, async (req, res) => {
+  try {
+    const myBookings = await db
+      .collection('bookings')
+      .find({ userId: req.user.userId })
+      .sort({ bookedAt: -1 })
+      .toArray();
+
+    res.status(200).json(myBookings);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve your bookings.' });
+  }
+});
+
+// 3. DELETE /api/bookings/:id — Cancel a booking (User can only cancel their own)
+app.delete('/api/bookings/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid booking ID format.' });
+    }
+
+    const result = await db.collection('bookings').deleteOne({
+      _id: new ObjectId(id),
+      userId: req.user.userId,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Booking not found or not authorized to cancel.' });
+    }
+
+    res.status(200).json({ message: 'Booking cancelled successfully.' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to cancel booking.' });
+  }
+});
+
 // Start the server
 startServer();
