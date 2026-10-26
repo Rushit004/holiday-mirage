@@ -539,9 +539,6 @@ function App() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                    Guest Mode (Browsing Only)
-                  </span>
                   <a
                     href="#auth-section"
                     className="text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold py-1.5 px-3 rounded-full transition-colors"
