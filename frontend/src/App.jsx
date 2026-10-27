@@ -538,9 +538,6 @@ function App() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                    Guest Mode (Browsing Only)
-                  </span>
                   <a
                     href="#auth-section"
                     className="text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold py-1.5 px-3 rounded-full transition-colors"
@@ -732,7 +729,11 @@ function App() {
                     name="email"
                     value={authForm.email}
                     onChange={handleAuthFormChange}
+<<<<<<< HEAD
                     placeholder="e.g. admin@holidaymirage.com"
+=======
+                    placeholder="e.g. admin@holidaymirage.com "
+>>>>>>> 51df2bb781d4936f9d92a25424d5f0e0ecd55655
                     required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
@@ -1125,7 +1126,6 @@ function App() {
                             className="w-full bg-slate-800 hover:bg-teal-700 text-white font-semibold py-2 px-3 rounded-lg shadow-sm transition-colors text-xs flex items-center justify-center gap-1.5"
                           >
                             <span>Book Destination</span>
-                            <span className="text-[10px] text-teal-200 font-normal">(Login Required)</span>
                           </button>
                         ) : (
                           <button
