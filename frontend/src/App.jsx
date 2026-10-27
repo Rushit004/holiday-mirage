@@ -729,11 +729,7 @@ function App() {
                     name="email"
                     value={authForm.email}
                     onChange={handleAuthFormChange}
-<<<<<<< HEAD
                     placeholder="e.g. admin@holidaymirage.com"
-=======
-                    placeholder="e.g. admin@holidaymirage.com "
->>>>>>> 51df2bb781d4936f9d92a25424d5f0e0ecd55655
                     required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
