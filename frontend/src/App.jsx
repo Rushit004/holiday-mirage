@@ -515,7 +515,6 @@ function App() {
                   {/* User Profile Pill */}
                   <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-full text-xs">
                     <span className="font-semibold text-slate-700">{currentUser.name}</span>
-                    <span className="text-slate-400">({currentUser.email})</span>
                   </div>
 
                   {/* Role Indicator Badge */}
@@ -733,7 +732,7 @@ function App() {
                     name="email"
                     value={authForm.email}
                     onChange={handleAuthFormChange}
-                    placeholder="e.g. admin@holidaymirage.com or traveler@example.com"
+                    placeholder="e.g. admin@holidaymirage.com"
                     required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
